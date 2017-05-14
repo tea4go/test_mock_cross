@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>test_mock_js</title>
+    <meta http-equiv="Access-Control-Allow-Origin" content="*">
+</head>
+
+
+<body>
+    <div id="test_mock">
+        <label>请输入名称：</label>
+        <input placeholder="xxx">
+        <button v-on:click="show_cross_info">{{but_1}}</button>
+        <button v-on:click="show_mock_info">本地mock调用</button>
+        <div v-for="item in people">
+            <p>姓名：{{item.name}}</p>
+            <p>年龄：{{item.age}}</p>
+        </div>
+    </div>
+    <h1>test1=================</h1>
+    <div id="test1"></div>
+    <h1>test2=================</h1>
+    <div id="test2"></div>
+    <h1>test3=================</h1>
+    <div id="test3"></div>
+    <h1>test4================</h1>
+    <div id="test4"></div>
+
+    <!--mock.js 依赖jQuery和require.js-->
+    <script src="jquery-1.11.1.js"></script>
+    <script src="vue-2.3.3.js"></script>
+    <script src="require.js"></script>
+    <!--mock-server.js是mockJs的demo文件-->
+    <script src="mock-server.js"></script>
+
+    <script type="text/javascript">
+        function cross_callback_func(data) {
+            console.log("跨域请求返回数据：");
+            console.log(JSON.stringify(data, null, 4));
+        }
+        var vm = new Vue({
+            el: "#test_mock",
+            data: {
+                people: [{
+                    name: '张三',
+                    age: 0
+                }],
+                but_1: '跨域cross调用',
+            },
+            methods: {
+                show_cross_info: function () {
+                    console.log("show_info() begin");
+                    this.out = "正在调用中";
+                    var self = this;
+
+                    //调本mock得到下面跨域调用的输入参数
+                    $.ajax({
+                        type: 'GET',
+                        url: '/get_cross_input',
+                        dataType: 'JSON',
+                        async: false,
+                        //请求成功
+                        success: function (data, textStatus, jqXHR) {
+                            console.log("获得参数成功")
+                            self.input_data = {
+                                people: data.people
+                            }
+                        },
+                        //请求失败
+                        error: function (xhr, textStatus, errorThrown) {
+                            console.log('获得参数失败，原因：' + textStatus)
+                        },
+                    });
+
+                    $.ajax({
+                        type: 'GET',
+                        url: 'http://10.45.17.160:9080/v1/wifidog/test_cross',
+                        timeout: 100,//毫秒
+                        //跨域请求设置下面三个属性
+                        dataType: 'JSONP',
+                        jsonp: 'cross_callback_name',
+                        jsonpCallback: 'cross_callback_func',
+                        data: {
+                            out_data: JSON.stringify(self.input_data, null, 4)
+                        },
+                        //请求成功
+                        success: function (data, textStatus, jqXHR) {
+                            console.log("调用成功")
+                            self.people = data.people
+                        },
+                        //请求失败
+                        error: function (xhr, textStatus, errorThrown) {
+                            console.log('调用失败，返回状态：' + xhr.status + '，错误信息：' + textStatus)
+                        }
+                    });
+
+                    console.log("show_info() : end");
+                    this.but_1 = "跨域cross调用";
+                },
+                show_mock_info: function () {
+                    console.log("show_info() begin");
+                    var self = this;
+                    $.ajax({
+                        type: 'GET',
+                        url: 'http://10.45.17.160:9080/v1/wifidog/test_cross',
+                        dataType: 'JSON',
+                        //请求成功
+                        success: function (data, textStatus, jqXHR) {
+                            console.log("调用成功")
+                            self.people = data.people
+                        },
+                        //请求失败
+                        error: function (xhr, textStatus, errorThrown) {
+                            console.log('调用失败，返回状态：' + xhr.status + '，错误信息：' + textStatus)
+                        }
+                    });
+
+                    console.log("show_info() : end");
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>
